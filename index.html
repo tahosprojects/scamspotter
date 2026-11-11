@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScamSpotter</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;font-family:Arial,Helvetica,sans-serif;background:#0a1a3a;padding:30px}
+.app-wrap{display:flex;gap:34px;align-items:center;flex-wrap:wrap;justify-content:center}
+.phone{width:360px;background:#111;border-radius:46px;padding:12px;box-shadow:0 22px 50px rgba(0,0,0,.45)}
+.screen{background:#fafafa;border-radius:36px;min-height:700px;overflow:hidden;position:relative}
+.status{height:38px;display:flex;justify-content:space-between;align-items:center;padding:0 20px;font-size:13px;font-weight:bold}
+.header{text-align:center;padding:8px 18px 14px;border-bottom:1px solid #ddd}
+.avatar{width:52px;height:52px;margin:auto;border-radius:50%;display:grid;place-items:center;background:#dfe6ea;font-size:25px}
+.sender{margin-top:6px;font-weight:700}
+.number{color:#777;font-size:12px;margin-top:2px}
+.messages{padding:24px 18px 10px;min-height:220px}
+.bubble{max-width:88%;background:#e5e5ea;padding:13px 15px;border-radius:20px 20px 20px 6px;line-height:1.35;font-size:15px;white-space:pre-line;word-wrap:break-word}
+.time{color:#999;font-size:11px;margin:6px 0 0 8px}
+.timer{height:6px;margin:0 18px;border-radius:99px;background:#e6e6e6;overflow:hidden;visibility:hidden}
+.timer.on{visibility:visible}
+.timer-fill{height:100%;width:100%;background:#e08a3c;transform-origin:left}
+.decision-area{padding:8px 18px 12px}
+.decision-area h3{margin:4px 0 12px;font-size:16px;text-align:center}
+.buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+button{border:none;border-radius:12px;padding:12px 6px;font-weight:700;cursor:pointer;font-size:12px;font-family:inherit}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible{outline:3px solid #1f7686;outline-offset:2px}
+.trust{background:#bfe8c7}.verify{background:#ffe6a7}.scam{background:#f7b4b4}
+.feedback{margin:10px 18px 8px;border-radius:16px;padding:14px;display:none;border:1px solid #ddd;background:white}
+.feedback strong{display:block;margin-bottom:7px;font-size:17px}
+.flags{margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.45}
+.next{width:calc(100% - 36px);margin:10px 18px 20px;background:#1f7686;color:white;font-size:14px;display:none}
+.overlay{position:absolute;inset:0;background:#fafafa;z-index:5;padding:60px 26px 26px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.overlay.hidden{display:none}
+.overlay .logo{font-size:54px}
+.overlay h2{margin:8px 0 4px;color:#176b78;font-size:28px}
+.overlay p{color:#555;font-size:14px;line-height:1.45;margin:6px 0 16px}
+.modes{display:grid;gap:10px;width:100%}
+.mode{background:#fff;border:2px solid #ddd;padding:14px;text-align:left;font-size:14px;border-radius:14px}
+.mode small{display:block;font-weight:400;color:#666;margin-top:4px;font-size:12px}
+.mode.selected{border-color:#176b78;background:#eef8f6}
+.start{margin-top:18px;width:100%;background:#176b78;color:#fff;font-size:15px;padding:14px}
+.panel{width:390px;max-width:92vw;background:rgba(255,255,255,.93);border-radius:24px;padding:26px;box-shadow:0 15px 40px rgba(0,0,0,.25)}
+.panel h1{margin:0 0 6px;color:#176b78;font-size:30px}
+.panel p{color:#555;line-height:1.45}
+.meter{height:16px;border-radius:999px;background:#e6e6e6;overflow:hidden;margin:8px 0 18px}
+.meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#f0b24d,#2d9472);transition:width .3s ease}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.stat{border:1px solid #ddd;border-radius:16px;padding:12px;text-align:center}
+.stat .big{font-size:24px;font-weight:bold;color:#176b78}
+.final{display:none;margin-top:18px;padding:16px;border-radius:16px;background:#eef8f6;border:1px solid #bddfd7}
+.final h2{margin-top:0}
+.final ul{padding-left:20px;margin:6px 0;font-size:14px;line-height:1.5;color:#444}
+.restart{width:100%;margin-top:12px;background:#176b78;color:white;font-size:14px}
+.secondary{width:100%;margin-top:8px;background:#fff;border:2px solid #176b78;color:#176b78;font-size:14px}
+.tiny{font-size:12px;color:#777}
+@media(max-width:800px){body{align-items:flex-start}.app-wrap{gap:22px}}
+</style>
+</head>
+<body>
+<div class="app-wrap">
+<div class="phone"><div class="screen">
+
+<div class="overlay" id="startScreen">
+  <div class="logo">📱</div>
+  <h2>ScamSpotter</h2>
+  <p>You will see a random set of text messages. For each one, decide: trust it, verify it another way, or call it a scam.</p>
+  <div class="modes">
+    <button class="mode selected" data-mode="practice">Practice Mode<small>Take your time. 8 random messages.</small></button>
+    <button class="mode" data-mode="timed">Timed Challenge<small>20 seconds per message. Scammers rely on pressure.</small></button>
+  </div>
+  <button class="start" id="startBtn">START</button>
+</div>
+
+<div class="status"><span>9:41</span><span>5G ▮▮▮ 🔋</span></div>
+<div class="header"><div class="avatar" id="avatar">🏦</div><div class="sender" id="sender">Sender</div><div class="number" id="number">Number</div></div>
+<div class="messages"><div class="bubble" id="message"></div><div class="time">Today 9:38 AM</div></div>
+<div class="timer" id="timer"><div class="timer-fill" id="timerFill"></div></div>
+<div class="decision-area"><h3>What would you do?</h3><div class="buttons">
+<button class="trust" data-choice="trust">TRUST</button>
+<button class="verify" data-choice="verify">VERIFY</button>
+<button class="scam" data-choice="scam">SCAM</button>
+</div></div>
+<div class="feedback" id="feedback" aria-live="polite"></div>
+<button class="next" id="nextBtn">NEXT MESSAGE →</button>
+</div></div>
+
+<div class="panel">
+<h1>ScamSpotter</h1>
+<p>Can you spot the scam before you click? Review each text message and decide whether you would trust it, verify it another way, or mark it as a scam.</p>
+<strong>Security Awareness</strong>
+<div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+<div class="stats">
+<div class="stat"><div class="big" id="score">0</div><div>Points</div></div>
+<div class="stat"><div class="big"><span id="current">0</span>/<span id="total">8</span></div><div>Messages</div></div>
+<div class="stat"><div class="big" id="streak">0</div><div>Streak</div></div>
+<div class="stat"><div class="big" id="best">0</div><div>Best Score</div></div>
+</div>
+<div class="final" id="finalReport"></div>
+<p class="tiny">Training demo: messages and phone numbers are fictional.</p>
+</div>
+</div>
+
+<script>
+// Message pool. Each game draws a random set from this list.
+// tags describe the main warning signs, used for the end-of-game skills report.
+const pool = [
+{avatar:"🏦",sender:"Bank Security",number:"+1 (813) 555-0182",message:"URGENT: We detected unusual activity on your account. Verify your identity immediately:\nhttp://secure-mybank247.com",best:"scam",tags:["urgency","link"],title:"🚨 HIGH RISK",explanation:"Banks do not text from local numbers asking you to verify through an insecure link.",flags:["Artificial urgency","Suspicious URL using HTTP","Requests immediate account verification","Unexpected contact"]},
+{avatar:"📦",sender:"Swift Parcel Service",number:"84512",message:"We attempted delivery of your package but your address was incomplete. A $2.15 correction fee is required to reschedule:\nswiftparcel-redeliver.net",best:"scam",tags:["link","money"],title:"🚨 HIGH RISK",explanation:"Untrusted sender with an unofficial website. You may not have ordered anything, so do not enter payment details.",flags:["Unofficial-looking domain, not the real carrier's site","Small fee designed to feel harmless","No tracking or order number included","Unexpected message about a package"]},
+{avatar:"🎁",sender:"Reward Center",number:"71190",message:"Congratulations! You've been selected to receive a $750 prepaid gift card. Claim within 24 hours before it expires:\nclaim-my-giftcard.com",best:"scam",tags:["reward","urgency","link"],title:"🚨 HIGH RISK",explanation:"Reward texts are a long-running scam. Unless you entered a giveaway, you should not entertain this.",flags:["Prize for a contest you never entered","Artificial 24-hour deadline","Unfamiliar short code with no company name","Link designed to collect personal info before 'claiming'"]},
+{avatar:"👦",sender:"Unknown Number",number:"+1 (813) 555-0947",message:"Mom it's me, I lost my phone so I'm texting from a friend's. I got in a small accident and need $180 for a tow truck, can you send it to this Cash App right now?",best:"verify",tags:["impersonation","money","urgency"],title:"⚠️ VERIFY FIRST",explanation:"Call your family member on their real number and ask a question only they would know before sending anything.",flags:["Message comes from an unrecognized number","Urgent request for money through a hard-to-trace app","No way to confirm identity inside the text","Plays on a parent's instinct to act fast"]},
+{avatar:"💼",sender:"Meridian Payroll",number:"+1 (813) 555-2200",message:"Your direct deposit of $1,214.50 was successfully processed for this pay period. No action is needed. Questions? Contact HR through the employee portal.",best:"trust",tags:[],title:"✅ LOW RISK",explanation:"Nothing here asks you to click, pay, or share anything.",flags:["Known sender, purely informational","No links","No requests for money or credentials","No urgency"]},
+{avatar:"🛣️",sender:"Unknown Number",number:"+1 (813) 555-0764",message:"You have an outstanding toll balance of $6.75. Pay now to avoid a $50 late fee:\nsunpass-fastpay.net",best:"verify",tags:["link","urgency","money"],title:"⚠️ VERIFY FIRST",explanation:"Toll balances are real and could genuinely be owed, but the odd domain and rushed late fee mean you should check your actual toll account directly instead of clicking the link.",flags:["Domain does not match the real toll agency's website","Threat of a steep late fee creates urgency","Sent from an unrecognized number","No account number or plate number referenced"]},
+{avatar:"🎓",sender:"USF Login",number:"+1 (813) 555-0127",message:"Your USF verification code is 482913. It expires in 10 minutes. Never share this code with anyone.",best:"trust",tags:[],title:"✅ LOW RISK",explanation:"If you just tried to sign in, this is a normal one-time code. It has no link and you only enter it yourself. If you did NOT request it, change your password.",flags:["No link included","No request for personal info","Matches an action you just took","Warns you not to share the code"]},
+{avatar:"🛒",sender:"Amazon",number:"+1 (206) 555-0193",message:"Amazon: A $489.99 order for a gaming laptop was placed on your account. If this was not you, review your recent orders in the Amazon app.",best:"verify",tags:["money","urgency"],title:"⚠️ VERIFY FIRST",explanation:"It may be real or fake, so do not rely on the text. Open the app or type the site address yourself and check your orders.",flags:["Unexpected large purchase creates panic","Cannot be confirmed from the text alone","Safe move is the official app, not a link or number in the text"]},
+{avatar:"👤",sender:"Unknown Number",number:"+1 (813) 555-0166",message:"Hi, this is Dr. Ramirez. I'm stuck in a meeting and can't talk. I need you to buy 4 $100 gift cards for a student award today. Send me the codes here and I'll reimburse you.",best:"scam",tags:["impersonation","money","urgency"],title:"🚨 HIGH RISK",explanation:"Impersonating a boss or professor and asking for gift card codes is a classic scam. Gift card codes are untraceable once sent.",flags:["Authority impersonation","New number claiming to be someone you know","Gift card payment request","Says they cannot talk, so you cannot verify","Pressure to act today"]},
+{avatar:"🦷",sender:"Bayshore Family Dental",number:"+1 (813) 555-0311",message:"Reminder: your cleaning is tomorrow at 2:30 PM. Reply C to confirm. To reschedule, call the office number on your appointment card.",best:"trust",tags:[],title:"✅ LOW RISK",explanation:"You have an appointment, the text asks for nothing sensitive, and it points you to a number you already have.",flags:["Matches an appointment you actually booked","No link or payment request","Directs you to a contact method you already know"]},
+{avatar:"📺",sender:"StreamPlus Billing",number:"+1 (727) 555-0420",message:"Your StreamPlus account is on hold because your payment failed. Update your billing info now to avoid losing access:\nstreamplus-billing-update.com",best:"scam",tags:["link","urgency"],title:"🚨 HIGH RISK",explanation:"Real services send billing problems through their own app or email on file. This link imitates the brand to steal card details.",flags:["Look-alike domain","Threat of losing access creates urgency","Asks for payment details through a text link","Generic message with no account name"]},
+{avatar:"💬",sender:"Unknown Number",number:"+1 (941) 555-0818",message:"Hey Alex, are you still coming to dinner on Friday? I made reservations for 7!",best:"scam",tags:["impersonation","unexpected"],title:"🚨 HIGH RISK",explanation:"A friendly wrong-number text is often the first step of a longer scam. Do not reply. Block and delete it.",flags:["Wrong-number opener to start a conversation","Friendly tone builds trust before any request","Unknown sender using a name you did not give","Replying confirms your number is active"]},
+{avatar:"💻",sender:"Talent Team",number:"+1 (305) 555-0299",message:"We found your resume! Remote data entry, $45/hour, flexible hours. To start, text back YES and buy your $80 equipment kit through our approved vendor.",best:"scam",tags:["money","reward"],title:"🚨 HIGH RISK",explanation:"A real employer never asks you to pay for equipment. Offers that are too good to be true and ask for money are job scams.",flags:["Unsolicited job offer","Pay far above normal for the work","Asks YOU to pay money upfront","No company name or interview"]},
+{avatar:"🏛️",sender:"Coastal Credit Union",number:"+1 (813) 555-0600",message:"Fraud alert: Did you attempt a $212.40 purchase at an electronics store? Reply YES or NO. We will never ask for your PIN or full card number by text.",best:"verify",tags:["money"],title:"⚠️ VERIFY FIRST",explanation:"Real banks do send fraud alerts like this. Even so, the safest move is to call the number on the back of your card or check your banking app.",flags:["Could be real, but cannot be confirmed from the text alone","Short, no link, and warns against sharing a PIN","Safe move is to contact the bank through a number you already trust"]},
+{avatar:"📚",sender:"Campus Bookstore",number:"+1 (813) 555-0455",message:"Your order is ready for pickup at the front desk. Bring your student ID. No payment is needed.",best:"trust",tags:[],title:"✅ LOW RISK",explanation:"It matches an order you placed, contains no link, and asks for no money or personal info.",flags:["Matches something you ordered","No link or payment request","Asks only that you show up in person"]},
+{avatar:"🧾",sender:"Tax Office",number:"+1 (202) 555-0177",message:"FINAL NOTICE: You owe $1,284 in back taxes. A warrant will be issued unless you call 855-555-0100 within 1 hour.",best:"scam",tags:["urgency","impersonation","money"],title:"🚨 HIGH RISK",explanation:"Government agencies do not threaten arrest by text or demand instant payment by phone.",flags:["Threat of arrest creates fear","One-hour deadline","Authority impersonation","Demands you call a number from the text"]},
+{avatar:"🧑",sender:"Jordan (Friend)",number:"+1 (813) 555-0388",message:"omg is this you?? 😳\nhttp://photos-viewr.link/ab12",best:"verify",tags:["link","impersonation"],title:"⚠️ VERIFY FIRST",explanation:"Friends' accounts get hacked and used to spread links. Contact Jordan another way, like a call or another app, before clicking.",flags:["Known contact, but the message is out of character","Curiosity bait","Suspicious link","Vague message with no context"]}
+];
+
+const GAME_LENGTH = 8, TIMER_SECONDS = 20;
+const tagLabels = {urgency:"Pressure and urgency",link:"Suspicious links",money:"Money requests",impersonation:"Impersonation",reward:"Too-good-to-be-true offers",unexpected:"Unexpected contact"};
+
+let scenarios=[], index=0, score=0, streak=0, answered=false, mode="practice", timerId=null, missedTags={}, missedList=[];
+
+const $=id=>document.getElementById(id);
+const sender=$("sender"),number=$("number"),avatar=$("avatar"),message=$("message"),feedback=$("feedback"),nextBtn=$("nextBtn"),
+scoreEl=$("score"),currentEl=$("current"),totalEl=$("total"),streakEl=$("streak"),bestEl=$("best"),meterFill=$("meterFill"),
+finalReport=$("finalReport"),startScreen=$("startScreen"),timer=$("timer"),timerFill=$("timerFill"),
+choiceButtons=document.querySelectorAll("[data-choice]"),modeButtons=document.querySelectorAll("[data-mode]");
+
+function loadStats(){try{return JSON.parse(localStorage.getItem("scamspotterStats"))||{best:0,games:0,history:[]};}catch(e){return {best:0,games:0,history:[]};}}
+function saveStats(s){try{localStorage.setItem("scamspotterStats",JSON.stringify(s));}catch(e){}}
+
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startGame(){
+ scenarios=shuffle(pool).slice(0,GAME_LENGTH);
+ index=0;score=0;streak=0;missedTags={};missedList=[];
+ scoreEl.textContent="0";streakEl.textContent="0";meterFill.style.width="0%";totalEl.textContent=scenarios.length;
+ finalReport.style.display="none";startScreen.classList.add("hidden");
+ bestEl.textContent=loadStats().best;
+ loadScenario();
+}
+
+function loadScenario(){
+ const s=scenarios[index];
+ avatar.textContent=s.avatar;sender.textContent=s.sender;number.textContent=s.number;message.textContent=s.message;
+ currentEl.textContent=index+1;feedback.style.display="none";nextBtn.style.display="none";answered=false;
+ choiceButtons.forEach(b=>b.disabled=false);
+ startTimer();
+}
+
+function startTimer(){
+ stopTimer();
+ if(mode!=="timed"){timer.classList.remove("on");return;}
+ timer.classList.add("on");
+ timerFill.style.transition="none";timerFill.style.transform="scaleX(1)";
+ void timerFill.offsetWidth;
+ timerFill.style.transition="transform "+TIMER_SECONDS+"s linear";timerFill.style.transform="scaleX(0)";
+ timerId=setTimeout(()=>choose("timeout"),TIMER_SECONDS*1000);
+}
+function stopTimer(){if(timerId){clearTimeout(timerId);timerId=null;}}
+
+function choose(choice){
+ if(answered)return;answered=true;stopTimer();
+ if(mode==="timed"){const w=getComputedStyle(timerFill).transform;timerFill.style.transition="none";timerFill.style.transform=w;}
+ const s=scenarios[index];let points=0,resultText="";
+ if(choice===s.best){points=20;resultText="Correct decision!";}
+ else if(choice==="timeout"){points=0;resultText="Time ran out. Scammers count on you rushing.";}
+ else if(choice==="verify"){points=10;resultText="Cautious choice. Verification reduces risk.";}
+ else{points=0;resultText="That choice could expose you to risk.";}
+ if(points===20){streak++;}else{streak=0;missedList.push(s.sender+" ("+s.title.replace(/^\S+\s/,"")+")");s.tags.forEach(t=>missedTags[t]=(missedTags[t]||0)+1);}
+ score+=points;scoreEl.textContent=score;streakEl.textContent=streak;
+ meterFill.style.width=Math.min(100,Math.round(score/(scenarios.length*20)*100))+"%";
+ feedback.innerHTML="<strong>"+s.title+"</strong><div>"+resultText+" "+s.explanation+"</div><ul class='flags'>"+s.flags.map(f=>"<li>"+f+"</li>").join("")+"</ul>";
+ feedback.style.display="block";choiceButtons.forEach(b=>b.disabled=true);
+ nextBtn.textContent=(index===scenarios.length-1)?"VIEW SECURITY REPORT":"NEXT MESSAGE →";
+ nextBtn.style.display="block";
+ nextBtn.scrollIntoView({block:"nearest"});
+}
+
+function showFinalReport(){
+ const max=scenarios.length*20,percent=Math.round(score/max*100);let level="",note="";
+ if(percent>=90){level="🛡️ HUMAN FIREWALL";note="Excellent threat recognition. You slowed down, questioned suspicious cues, and verified when necessary.";}
+ else if(percent>=70){level="✅ LOW RISK";note="Strong performance, but a few messages still got through your defenses.";}
+ else if(percent>=50){level="⚠️ MEDIUM RISK";note="Some warning signs were missed. Pay special attention to urgency, links, and unexpected money requests.";}
+ else{level="🚨 HIGH RISK";note="Attackers may be able to exploit urgency or trust. Slow down and verify requests through a separate channel.";}
+
+ const stats=loadStats();
+ const prevBest=stats.best;
+ stats.games++;stats.best=Math.max(stats.best,score);
+ stats.history.unshift({score:score,max:max,percent:percent,mode:mode});stats.history=stats.history.slice(0,5);
+ saveStats(stats);bestEl.textContent=stats.best;
+
+ const topTags=Object.entries(missedTags).sort((a,b)=>b[1]-a[1]).slice(0,3);
+ let skills=topTags.length?"<p><strong>Skills to practice:</strong></p><ul>"+topTags.map(t=>"<li>"+tagLabels[t[0]]+" (missed "+t[1]+"x)</li>").join("")+"</ul>":"<p><strong>Skills to practice:</strong> None. Perfect run!</p>";
+ let missed=missedList.length?"<p><strong>Messages to review:</strong></p><ul>"+missedList.map(m=>"<li>"+m+"</li>").join("")+"</ul>":"";
+ const newBest=score>prevBest&&stats.games>1?" 🎉 New personal best!":"";
+ const hist="<p class='tiny'><strong>Recent games:</strong> "+stats.history.map(h=>h.percent+"% ("+(h.mode==="timed"?"timed":"practice")+")").join(", ")+"</p>";
+
+ finalReport.innerHTML="<h2>"+level+"</h2><p><strong>Final Score:</strong> "+score+"/"+max+" ("+percent+"%)"+newBest+"</p><p>"+note+"</p>"+skills+missed+hist+
+ "<button class='restart' id='restartBtn'>PLAY AGAIN</button><button class='secondary' id='modeBtn'>CHANGE MODE</button>";
+ finalReport.style.display="block";
+ $("restartBtn").addEventListener("click",startGame);
+ $("modeBtn").addEventListener("click",()=>{finalReport.style.display="none";startScreen.classList.remove("hidden");});
+}
+
+function nextScenario(){
+ if(!answered)return;
+ if(index===scenarios.length-1){nextBtn.style.display="none";feedback.style.display="none";showFinalReport();return;}
+ index++;loadScenario();
+}
+
+modeButtons.forEach(b=>b.addEventListener("click",()=>{mode=b.dataset.mode;modeButtons.forEach(x=>x.classList.toggle("selected",x===b));}));
+$("startBtn").addEventListener("click",startGame);
+choiceButtons.forEach(b=>b.addEventListener("click",()=>choose(b.dataset.choice)));
+nextBtn.addEventListener("click",nextScenario);
+
+// First screen: show a sample message behind the start overlay and the saved best score.
+bestEl.textContent=loadStats().best;
+const first=pool[0];avatar.textContent=first.avatar;sender.textContent=first.sender;number.textContent=first.number;message.textContent=first.message;
+</script>
+</body>
+</html>
